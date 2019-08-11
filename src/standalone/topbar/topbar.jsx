@@ -90,8 +90,13 @@ export default class Topbar extends React.Component {
 
   // Menu actions
 
-  importFromURL = () => {
-    let url = prompt("Enter the URL to import from:")
+  importFromURL = (directoryName, fileName, fromServer) => {
+    let url = "";
+    if(fromServer) {
+      url = "http://127.0.0.1:3001/api_json/"+directoryName+"/"+fileName;
+    } else {
+      url = prompt("Enter the URL to import from:");
+    }
 
     if(url) {
       fetch(url)
@@ -310,6 +315,36 @@ export default class Topbar extends React.Component {
     }
   }
 
+  getMenuItem = (menuItem) => {
+    let title = this.getMenuItemTitle(menuItem.directory);
+    let subItem = this.getMenuSubItem(menuItem.directory, menuItem.file);
+    if (menuItem.file && menuItem.file.length > 0) {
+      return (
+        <li>
+          {title}
+          <ul className= 'subItems'>
+          {subItem}
+          </ul>
+        </li>
+      );
+    } else {
+      return <li>{title}</li>;
+    }
+  };
+
+  getMenuItemTitle = (_menuItemTitle) => {
+    return <button type="button">{_menuItemTitle}</button>;
+  };
+
+  getMenuSubItem = (directoryName, fileNames) => {
+    var subItems = [];
+    var _this = this;
+    fileNames.forEach(function(fileName){
+      subItems.push(<li><button type="button" onClick={_this.importFromURL.bind(_this, directoryName, fileName, true)}>{fileName}</button></li>);
+    });
+    return subItems;
+  };
+
   render() {
     let { getComponent, specSelectors, topbarActions } = this.props
     const Link = getComponent("Link")
@@ -345,6 +380,37 @@ export default class Topbar extends React.Component {
       saveAsElements.push(<li><button type="button" onClick={this.saveAsJson}>Convert and save as JSON</button></li>)
     }
 
+    ////
+    var sampledata = [
+      {
+        "directory": "ManinServer",
+        "file": [
+          "prime.json",
+          "refund.json"
+        ]
+      },
+      {
+        "directory": "RedirectServer",
+        "file": [
+          "redirect.json"
+        ]
+      },
+      {
+        "directory": "TSPServer",
+        "file": [
+          "tsp-api.yaml"
+        ]
+      }
+  
+    ];
+
+    let serverFiles = [];
+
+    sampledata.map((item) => {
+      serverFiles.push(this.getMenuItem(item));
+    });
+
+
     return (
       <div>
         <div className="topbar">
@@ -352,8 +418,11 @@ export default class Topbar extends React.Component {
             <Link href="#">
               <img height="35" className="topbar-logo__img" src={ Logo } alt=""/>
             </Link>
+            <DropdownMenu {...makeMenuOptions("Server")}>
+              {serverFiles}
+            </DropdownMenu>
             <DropdownMenu {...makeMenuOptions("File")}>
-              <li><button type="button" onClick={this.importFromURL}>Import URL</button></li>
+              <li><button type="button" onClick={this.importFromURL.bind(this, null, null, false)}>Import URL</button></li>
               <ImportFileMenuItem onDocumentLoad={content => this.props.specActions.updateSpec(content)} />
               <li role="separator"></li>
               {saveAsElements}
