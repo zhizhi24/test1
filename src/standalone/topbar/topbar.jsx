@@ -114,14 +114,13 @@ export default class Topbar extends React.Component {
   addPathName = (PathName) => {
     url = prompt("請輸入" + PathName);
     if(url) {
-      
+
     }
   }
 
   saveToServer = (directoryName, fileName) => {
     let editorContent = this.props.specSelectors.specStr()
-    let language =  this.getDefinitionLanguage()//fileName.split(".")[1]
-    //let fileName = this.getFileName()
+    let language =  this.getDefinitionLanguage()
 
     if(this.hasParserErrors()) {
       if(language === "yaml") {
@@ -139,13 +138,15 @@ export default class Topbar extends React.Component {
       let yamlContent = YAML.safeDump(jsContent)
       //this.downloadFile(yamlContent, `${fileName}.yaml`)
       this.downloadFile(yamlContent, fileName)
+      //呼叫API
     } else {
       // JSON or YAML String -> JS object
       let jsContent = YAML.safeLoad(editorContent)
       // JS Object -> pretty JSON string
       let prettyJsonContent = beautifyJson(jsContent, null, 2)
       //this.downloadFile(prettyJsonContent, `${fileName}.json`)
-      this.downloadFile(yamlContent, fileName)
+      this.downloadFile(prettyJsonContent, fileName)
+      //呼叫API
     }
   }
 
@@ -353,15 +354,15 @@ export default class Topbar extends React.Component {
     }
   }
 
-  getMenuItem = (menuItem, isImport) => {
+  getMenuItem = (menuItem) => {
     let title = this.getMenuItemTitle(menuItem.directory);
-    let subItem = this.getMenuSubItem(menuItem.directory, menuItem.file, isImport);
-    if (menuItem.file && menuItem.file.length > 0) {
+    let subItem = this.getMenuSubItem(menuItem.directory, menuItem.file);
+    if (menuItem.file && menuItem.file.length) {
       return (
         <li className="multi-level">
           {title}
-          <ul className= 'subItems'>
-          {subItem}
+          <ul className="subItems">
+            {subItem}
           </ul>
         </li>
       );
@@ -370,28 +371,30 @@ export default class Topbar extends React.Component {
     }
   };
 
-  getMenuItemTitle = (_menuItemTitle) => {
-    return <button type="button">{_menuItemTitle}</button>;
+  //路徑名稱directory
+  getMenuItemTitle = (menuItemTitle) => {
+    return <button type="button">{menuItemTitle}</button>;
   };
 
-  getMenuSubItem = (directoryName, fileNames, isImport) => {
+  //檔案名稱file
+  getMenuSubItem = (directoryName, fileNames) => {
     var subItems = [];
     var _this = this;
     fileNames.forEach(function(fileName){
-      if(isImport){
-        subItems.push(<li><button type="button" onClick={_this.importFromURL.bind(_this, directoryName, fileName, true)}>{fileName}</button></li>);
-      } else {
-        subItems.push(<li><button type="button" onClick={_this.saveToServer.bind(_this, directoryName, fileName)}>{fileName}</button></li>);
-      }
+      //按鈕
+      subItems.push(
+        <li>
+          <button type="button">{fileName}</button>
+          <ul>
+            <li><button type="button" onClick={_this.importFromURL.bind(_this, directoryName, fileName, true)}>load</button></li>
+            <li><button type="button" onClick={_this.saveToServer.bind(_this, directoryName, fileName)}>save</button></li>
+          </ul>
+        </li>);
     });
-
-    if(!isImport){
-      subItems.push(<li><button type="button" onClick={_this.addPathName.bind(_this, "fileName")}>add fileName</button></li>);
-    } 
-    
     return subItems;
   };
 
+  //取得Server路徑檔案名稱
   getServerDirectory = () => {
 
     var apiData = [
@@ -456,18 +459,12 @@ export default class Topbar extends React.Component {
     }
 
     let serverDirectorys = this.getServerDirectory()
-    let ImportServerFiles = [];
-    let SaveServerFiles = [];
-
+    let ServerFiles = [];
     //讀取server路徑檔案的menu
     serverDirectorys.map((item) => {
-      ImportServerFiles.push(this.getMenuItem(item, true));
+      ServerFiles.push(this.getMenuItem(item));
     });
-    //儲存檔案到server路徑的menu
-    serverDirectorys.map((item) => {
-      SaveServerFiles.push(this.getMenuItem(item, false));
-    });
-    SaveServerFiles.push(<li><button type="button" onClick={this.addPathName.bind(this, "ServerName")}>add ServerName</button></li>);
+    ServerFiles.push(<li><button type="button" onClick={this.addPathName.bind(this, "ServerName")}>add Server</button></li>);
 
     return (
       <div>
@@ -476,11 +473,8 @@ export default class Topbar extends React.Component {
             <Link href="#">
               <img height="35" className="topbar-logo__img" src={ Logo } alt=""/>
             </Link>
-            <DropdownMenu {...makeMenuOptions("Import From Server")}>
-              {ImportServerFiles}
-            </DropdownMenu>
-            <DropdownMenu {...makeMenuOptions("Save To Server")}>
-              {SaveServerFiles}
+            <DropdownMenu {...makeMenuOptions("Server")}>
+              {ServerFiles}
             </DropdownMenu>
             <DropdownMenu {...makeMenuOptions("File")}>
               <li><button type="button" onClick={this.importFromURL.bind(this, null, null, false)}>Import URL</button></li>
