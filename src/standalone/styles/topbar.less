@@ -113,12 +113,17 @@
   }
 }
 
-.dd-items-left > li{
-  position: relative;
+.dd-items-left li.multi-level li{
+  border: rgba(0,0,0,.15) 1px solid;
 }
 
-.dd-items-left > li:hover ul.subItems{  
-    display: block!important;
+.dd-items-left li.multi-level{
+  position: relative;
+  border: rgba(0,0,0,.15) 1px solid;
+}
+
+.dd-items-left > li.multi-level:hover ul.subItems{  
+  display: block!important;
 }
 
 .dd-items-left ul.subItems{

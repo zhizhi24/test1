@@ -111,6 +111,44 @@ export default class Topbar extends React.Component {
     }
   }
 
+  addPathName = (PathName) => {
+    url = prompt("請輸入" + PathName);
+    if(url) {
+      
+    }
+  }
+
+  saveToServer = (directoryName, fileName) => {
+    let editorContent = this.props.specSelectors.specStr()
+    let language =  this.getDefinitionLanguage()//fileName.split(".")[1]
+    //let fileName = this.getFileName()
+
+    if(this.hasParserErrors()) {
+      if(language === "yaml") {
+        const shouldContinue = confirm("Swagger-Editor isn't able to parse your API definition. Are you sure you want to save the editor content as YAML?")
+        if(!shouldContinue) return
+      } else {
+        return alert("Save as YAML is not currently possible because Swagger-Editor wasn't able to parse your API definiton.")
+      }
+    }
+
+    if(language === "yaml") {
+      // JSON String -> JS object
+      let jsContent = YAML.safeLoad(editorContent)
+      // JS object -> YAML string
+      let yamlContent = YAML.safeDump(jsContent)
+      //this.downloadFile(yamlContent, `${fileName}.yaml`)
+      this.downloadFile(yamlContent, fileName)
+    } else {
+      // JSON or YAML String -> JS object
+      let jsContent = YAML.safeLoad(editorContent)
+      // JS Object -> pretty JSON string
+      let prettyJsonContent = beautifyJson(jsContent, null, 2)
+      //this.downloadFile(prettyJsonContent, `${fileName}.json`)
+      this.downloadFile(yamlContent, fileName)
+    }
+  }
+
   saveAsYaml = () => {
     let editorContent = this.props.specSelectors.specStr()
     let language = this.getDefinitionLanguage()
@@ -315,12 +353,12 @@ export default class Topbar extends React.Component {
     }
   }
 
-  getMenuItem = (menuItem) => {
+  getMenuItem = (menuItem, isImport) => {
     let title = this.getMenuItemTitle(menuItem.directory);
-    let subItem = this.getMenuSubItem(menuItem.directory, menuItem.file);
+    let subItem = this.getMenuSubItem(menuItem.directory, menuItem.file, isImport);
     if (menuItem.file && menuItem.file.length > 0) {
       return (
-        <li>
+        <li className="multi-level">
           {title}
           <ul className= 'subItems'>
           {subItem}
@@ -328,7 +366,7 @@ export default class Topbar extends React.Component {
         </li>
       );
     } else {
-      return <li>{title}</li>;
+      return <li className="multi-level">{title}</li>;
     }
   };
 
@@ -336,13 +374,50 @@ export default class Topbar extends React.Component {
     return <button type="button">{_menuItemTitle}</button>;
   };
 
-  getMenuSubItem = (directoryName, fileNames) => {
+  getMenuSubItem = (directoryName, fileNames, isImport) => {
     var subItems = [];
     var _this = this;
     fileNames.forEach(function(fileName){
-      subItems.push(<li><button type="button" onClick={_this.importFromURL.bind(_this, directoryName, fileName, true)}>{fileName}</button></li>);
+      if(isImport){
+        subItems.push(<li><button type="button" onClick={_this.importFromURL.bind(_this, directoryName, fileName, true)}>{fileName}</button></li>);
+      } else {
+        subItems.push(<li><button type="button" onClick={_this.saveToServer.bind(_this, directoryName, fileName)}>{fileName}</button></li>);
+      }
     });
+
+    if(!isImport){
+      subItems.push(<li><button type="button" onClick={_this.addPathName.bind(_this, "fileName")}>add fileName</button></li>);
+    } 
+    
     return subItems;
+  };
+
+  getServerDirectory = () => {
+
+    var apiData = [
+      {
+        "directory": "ManinServer",
+        "file": [
+          "prime.json",
+          "refund.json"
+        ]
+      },
+      {
+        "directory": "RedirectServer",
+        "file": [
+          "redirect.json"
+        ]
+      },
+      {
+        "directory": "TSPServer",
+        "file": [
+          "tsp-api.yaml"
+        ]
+      }
+  
+    ];
+
+    return apiData
   };
 
   render() {
@@ -380,36 +455,19 @@ export default class Topbar extends React.Component {
       saveAsElements.push(<li><button type="button" onClick={this.saveAsJson}>Convert and save as JSON</button></li>)
     }
 
-    ////
-    var sampledata = [
-      {
-        "directory": "ManinServer",
-        "file": [
-          "prime.json",
-          "refund.json"
-        ]
-      },
-      {
-        "directory": "RedirectServer",
-        "file": [
-          "redirect.json"
-        ]
-      },
-      {
-        "directory": "TSPServer",
-        "file": [
-          "tsp-api.yaml"
-        ]
-      }
-  
-    ];
+    let serverDirectorys = this.getServerDirectory()
+    let ImportServerFiles = [];
+    let SaveServerFiles = [];
 
-    let serverFiles = [];
-
-    sampledata.map((item) => {
-      serverFiles.push(this.getMenuItem(item));
+    //讀取server路徑檔案的menu
+    serverDirectorys.map((item) => {
+      ImportServerFiles.push(this.getMenuItem(item, true));
     });
-
+    //儲存檔案到server路徑的menu
+    serverDirectorys.map((item) => {
+      SaveServerFiles.push(this.getMenuItem(item, false));
+    });
+    SaveServerFiles.push(<li><button type="button" onClick={this.addPathName.bind(this, "ServerName")}>add ServerName</button></li>);
 
     return (
       <div>
@@ -418,8 +476,11 @@ export default class Topbar extends React.Component {
             <Link href="#">
               <img height="35" className="topbar-logo__img" src={ Logo } alt=""/>
             </Link>
-            <DropdownMenu {...makeMenuOptions("Server")}>
-              {serverFiles}
+            <DropdownMenu {...makeMenuOptions("Import From Server")}>
+              {ImportServerFiles}
+            </DropdownMenu>
+            <DropdownMenu {...makeMenuOptions("Save To Server")}>
+              {SaveServerFiles}
             </DropdownMenu>
             <DropdownMenu {...makeMenuOptions("File")}>
               <li><button type="button" onClick={this.importFromURL.bind(this, null, null, false)}>Import URL</button></li>
