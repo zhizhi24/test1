@@ -18,7 +18,10 @@ export default class Topbar extends React.Component {
       swaggerClient: null,
       clients: [],
       servers: [],
-      definitionVersion: "Unknown"
+      definitionVersion: "Unknown",
+      TestApiMenu: [],
+      ServerFiles: [],
+      TestApiData: null
     }
   }
 
@@ -112,10 +115,31 @@ export default class Topbar extends React.Component {
   }
 
   addPathName = (PathName) => {
-    url = prompt("請輸入" + PathName);
-    if(url) {
+    var url = prompt("請輸入"+ PathName);
+        if(url) {
 
-    }
+          //call api
+          fetch("https://my-json-server.typicode.com/typicode/demo/comments")
+          .then(res => res.json())
+          .then(
+            (result) => {
+              //1.先組好資料
+              //...
+            
+              //2.組好資料 塞進 setState
+              this.setState({
+                TestApiData: result[0].body 
+              });
+              console.log(this.state.TestApiData);
+              alert(this.state.TestApiData);
+            },
+            (error) => {
+              this.setState({
+              });
+            }
+          )
+
+        }
   }
 
   saveToServer = (directoryName, fileName) => {
@@ -336,6 +360,8 @@ export default class Topbar extends React.Component {
 
   componentDidMount() {
     this.instantiateGeneratorClient()
+    //this.getServerDirectory()
+    this.getTestApiData()
   }
 
   componentDidUpdate() {
@@ -397,6 +423,27 @@ export default class Topbar extends React.Component {
   //取得Server路徑檔案名稱
   getServerDirectory = () => {
 
+    // fetch("https://my-json-server.typicode.com/typicode/demo/posts")
+    // .then(res => res.json())
+    // .then(
+    //   (result) => {
+    //     //1.先組好 menu資料
+    //     let ServerFiles = [];
+    //     result.map((item) => {
+    //       ServerFiles.push(this.getMenuItem(item));
+    //     });
+    //     ServerFiles.push(<li><button type="button" onClick={this.addPathName.bind(this, "ServerName")}>add Server</button></li>);
+    //     //2.組好menu資料 塞進 setState
+    //     this.setState({
+    //       ServerFiles: ServerFiles 
+    //     });
+    //   },
+    //   (error) => {
+    //     this.setState({
+    //     });
+    //   }
+    // )
+
     var apiData = [
       {
         "directory": "ManinServer",
@@ -423,6 +470,30 @@ export default class Topbar extends React.Component {
     return apiData
   };
 
+  //取得TestApiData
+  getTestApiData = () => {
+    fetch("https://my-json-server.typicode.com/typicode/demo/posts")
+    .then(res => res.json())
+    .then(
+      (result) => {
+        //1.先組好 menu資料
+        let testApiTitle = [];
+        result.map((item) => {
+          testApiTitle.push(<li><button type="button">{item.title}</button></li>);
+        });
+        //2.組好menu資料 塞進 setState
+        this.setState({
+          TestApiMenu: testApiTitle 
+        });
+      },
+      (error) => {
+        this.setState({
+          ///
+        });
+      }
+    )
+  };
+
   render() {
     let { getComponent, specSelectors, topbarActions } = this.props
     const Link = getComponent("Link")
@@ -432,6 +503,7 @@ export default class Topbar extends React.Component {
 
     let showServersMenu = this.state.servers && this.state.servers.length
     let showClientsMenu = this.state.clients && this.state.clients.length
+    let showTestApiMenu = this.state.TestApiMenu && this.state.TestApiMenu.length
 
     let definitionLanguage = this.getDefinitionLanguage()
 
@@ -458,6 +530,7 @@ export default class Topbar extends React.Component {
       saveAsElements.push(<li><button type="button" onClick={this.saveAsJson}>Convert and save as JSON</button></li>)
     }
 
+    //之後要註解掉
     let serverDirectorys = this.getServerDirectory()
     let ServerFiles = [];
     //讀取server路徑檔案的menu
@@ -473,6 +546,9 @@ export default class Topbar extends React.Component {
             <Link href="#">
               <img height="35" className="topbar-logo__img" src={ Logo } alt=""/>
             </Link>
+            { showTestApiMenu ? <DropdownMenu className="long" {...makeMenuOptions("test state call api")}>
+              {this.state.TestApiMenu}
+            </DropdownMenu> : null }
             <DropdownMenu {...makeMenuOptions("Server")}>
               {ServerFiles}
             </DropdownMenu>
